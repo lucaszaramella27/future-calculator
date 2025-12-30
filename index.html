@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculadora Glass</title>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    :root{
+      --glass: rgba(2, 6, 23, 0.96);
+    }
+
+    /* Card ocupa a janela inteira e CLIPA tudo (pra ficar redondo) */
+    .glass {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 26px;
+      overflow: hidden;
+      isolation: isolate;
+
+      background: var(--glass);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+
+      box-shadow:
+        0 18px 55px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+
+      transform: translateZ(0);
+    }
+
+    /* Bokeh dentro do card (não vaza) */
+    .glass::after{
+      content:"";
+      position:absolute;
+      inset:-24%;
+      z-index:-2;
+      background:
+        radial-gradient(closest-side, rgba(34, 211, 238, 0.20), transparent 60%),
+        radial-gradient(closest-side, rgba(167, 139, 250, 0.18), transparent 55%),
+        radial-gradient(closest-side, rgba(52, 211, 153, 0.14), transparent 60%);
+      filter: blur(34px);
+      opacity: 0.35;
+      pointer-events:none;
+    }
+
+    /* highlight */
+    .glass::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      z-index:-1;
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 35%);
+      opacity: .55;
+      pointer-events:none;
+    }
+
+    .btn-press{
+      transform: translateY(0) scale(1);
+      transition: transform 90ms ease, filter 150ms ease, background-color 150ms ease, border-color 150ms ease;
+      will-change: transform;
+    }
+    .btn-press:active{
+      transform: translateY(1px) scale(0.97);
+      filter: brightness(1.12);
+    }
+    .neon-text{
+      text-shadow: 0 0 10px rgba(34,211,238,.22), 0 0 18px rgba(167,139,250,.18);
+    }
+    .tabnums{ font-variant-numeric: tabular-nums; }
+    .divider{ background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent); }
+
+    /* Electron: arrastar janela */
+    .drag { -webkit-app-region: drag; }
+    .no-drag { -webkit-app-region: no-drag; }
+  </style>
+</head>
+
+<body class="text-slate-100">
+  <section class="glass p-4">
+    <!-- Topbar -->
+    <div class="drag flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <span class="inline-block h-2.5 w-2.5 rounded-full bg-rose-400/90"></span>
+        <span class="inline-block h-2.5 w-2.5 rounded-full bg-amber-300/90"></span>
+        <span class="inline-block h-2.5 w-2.5 rounded-full bg-emerald-300/90"></span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="minBtn" title="Minimizar"
+          class="no-drag btn-press w-9 h-9 rounded-xl border border-white/10 bg-white/10 hover:bg-white/15 grid place-items-center text-slate-200">
+          —
+        </button>
+        <button id="closeBtn" title="Fechar"
+          class="no-drag btn-press w-9 h-9 rounded-xl border border-white/10 bg-white/10 hover:bg-rose-500/25 grid place-items-center text-slate-200">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="rounded-2xl border border-white/10 bg-white/10 px-4 py-3">
+      <div id="history" class="tabnums text-right text-xs text-slate-300/80 min-h-[1.25rem] whitespace-nowrap overflow-hidden text-ellipsis"></div>
+      <div class="mt-1 flex items-end justify-between gap-3">
+        <div class="text-[10px] text-slate-400/70">
+          <span class="inline-block rounded-full border border-white/10 bg-white/10 px-2 py-1">
+            AC · % · +/-
+          </span>
+        </div>
+        <div id="display" class="tabnums text-right text-3xl font-semibold tracking-tight leading-none neon-text">0</div>
+      </div>
+    </div>
+
+    <div class="divider h-px my-4"></div>
+
+    <!-- Botões -->
+    <div class="grid grid-cols-4 gap-3">
+      <!-- Linha 1 -->
+      <button data-action="ac" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-sm font-semibold text-rose-200">AC</button>
+      <button data-action="sign" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-sm font-semibold">+/-</button>
+      <button data-action="percent" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-sm font-semibold">%</button>
+      <button data-op="/" class="btn-press rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-400/20 via-violet-400/15 to-emerald-400/10 hover:from-cyan-400/30 hover:via-violet-400/22 hover:to-emerald-400/14 px-4 py-3 text-base font-semibold neon-text">÷</button>
+
+      <!-- Linha 2 -->
+      <button data-digit="7" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">7</button>
+      <button data-digit="8" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">8</button>
+      <button data-digit="9" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">9</button>
+      <button data-op="*" class="btn-press rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-400/20 via-violet-400/15 to-emerald-400/10 hover:from-cyan-400/30 hover:via-violet-400/22 hover:to-emerald-400/14 px-4 py-3 text-base font-semibold neon-text">×</button>
+
+      <!-- Linha 3 -->
+      <button data-digit="4" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">4</button>
+      <button data-digit="5" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">5</button>
+      <button data-digit="6" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">6</button>
+      <button data-op="-" class="btn-press rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-400/20 via-violet-400/15 to-emerald-400/10 hover:from-cyan-400/30 hover:via-violet-400/22 hover:to-emerald-400/14 px-4 py-3 text-base font-semibold neon-text">−</button>
+
+      <!-- Linha 4 -->
+      <button data-digit="1" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">1</button>
+      <button data-digit="2" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">2</button>
+      <button data-digit="3" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">3</button>
+      <button data-op="+" class="btn-press rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-400/20 via-violet-400/15 to-emerald-400/10 hover:from-cyan-400/30 hover:via-violet-400/22 hover:to-emerald-400/14 px-4 py-3 text-base font-semibold neon-text">+</button>
+
+      <!-- Linha 5 -->
+      <button data-digit="0" class="btn-press col-span-2 rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold text-left pl-6">0</button>
+      <button data-action="dot" class="btn-press rounded-2xl border border-white/10 bg-white/10 hover:bg-white/15 px-4 py-3 text-lg font-semibold">.</button>
+      <button data-action="equals" class="btn-press rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-400/30 via-violet-400/25 to-emerald-400/20 hover:from-cyan-400/45 hover:via-violet-400/35 hover:to-emerald-400/28 px-4 py-3 text-base font-semibold neon-text">=</button>
+    </div>
+
+    <div class="mt-3 text-[11px] text-slate-400/70 text-center">
+      Teclado: 0-9, +, -, *, /, Enter, Backspace, Esc, %.
+    </div>
+  </section>
+
+  <!-- ✅ Áudio (arquivo: ./assets/click.wav) -->
+  <audio id="clickSfx" preload="auto"></audio>
+
+  <script>
+    // ===== BOTÕES DA JANELA (Electron) =====
+    const isElectron = typeof window.winControls !== "undefined";
+    document.getElementById("minBtn")?.addEventListener("click", () => isElectron && window.winControls.minimize());
+    document.getElementById("closeBtn")?.addEventListener("click", () => isElectron && window.winControls.close());
+
+    // ===== SOM DO CLICK (WAV) =====
+    const clickSfx = document.getElementById("clickSfx");
+    const CLICK_URL = new URL("./assets/click.wav", window.location.href).toString();
+
+    // Preload
+    clickSfx.src = CLICK_URL;
+    clickSfx.load();
+    clickSfx.volume = 0.35;
+
+    function playClickSound() {
+      try {
+        // Player novo por clique (não engasga)
+        const sfx = new Audio(CLICK_URL);
+        sfx.volume = 0.35;
+        sfx.play().catch(() => {});
+      } catch (_) {}
+    }
+
+    // ===== CALCULADORA =====
+    const displayEl = document.getElementById("display");
+    const historyEl = document.getElementById("history");
+
+    const MAX_LEN = 14;
+    const state = { a: null, op: null, bTyping: false, current: "0", lastWasEquals: false };
+
+    const fmt = (n) => {
+      if (!Number.isFinite(n)) return "Erro";
+      if (Object.is(n, -0)) n = 0;
+
+      const rounded = Math.round((n + Number.EPSILON) * 1e12) / 1e12;
+      let s = String(rounded);
+
+      if (s.replace("-", "").replace(".", "").length > MAX_LEN) s = rounded.toExponential(8);
+      return s;
+    };
+
+    const setDisplay = (t) => (displayEl.textContent = t);
+    const setHistory = (t) => (historyEl.textContent = t || "");
+    const getCurrentNumber = () => {
+      const n = Number(state.current);
+      return Number.isFinite(n) ? n : NaN;
+    };
+    const clampInput = (s) => (s.length <= 24 ? s : s.slice(0, 24));
+    const compute = (a, op, b) => ({ "+": a + b, "-": a - b, "*": a * b, "/": (b === 0 ? NaN : a / b) }[op] ?? b);
+    const symbolOp = (op) => ({ "+": "+", "-": "−", "*": "×", "/": "÷" }[op] || op);
+
+    const resetAll = () => {
+      state.a = null;
+      state.op = null;
+      state.bTyping = false;
+      state.current = "0";
+      state.lastWasEquals = false;
+      setDisplay("0");
+      setHistory("");
+    };
+
+    const commitIfReady = () => {
+      if (state.a === null || state.op === null) return;
+      const b = getCurrentNumber();
+      const res = compute(state.a, state.op, b);
+
+      if (!Number.isFinite(res)) {
+        state.current = "Erro";
+        state.a = null;
+        state.op = null;
+        state.bTyping = false;
+        state.lastWasEquals = true;
+        setHistory("");
+        setDisplay("Erro");
+        return;
+      }
+
+      state.a = res;
+      state.current = fmt(res);
+      state.bTyping = false;
+      setDisplay(state.current);
+    };
+
+    const inputDigit = (d) => {
+      if (state.current === "Erro") resetAll();
+      if (state.lastWasEquals && state.op === null && !state.bTyping) {
+        state.a = null;
+        state.lastWasEquals = false;
+        state.current = "0";
+      }
+
+      if (!state.bTyping) {
+        state.current = d === "0" ? "0" : d;
+        state.bTyping = true;
+      } else {
+        const digitsOnly = state.current.replace("-", "").replace(".", "");
+        if (digitsOnly.length >= MAX_LEN) return;
+        if (state.current === "0" && d !== "0" && !state.current.includes(".")) state.current = d;
+        else state.current = clampInput(state.current + d);
+      }
+      setDisplay(state.current);
+    };
+
+    const inputDot = () => {
+      if (state.current === "Erro") resetAll();
+      if (state.lastWasEquals && state.op === null && !state.bTyping) {
+        state.a = null;
+        state.lastWasEquals = false;
+        state.current = "0";
+      }
+
+      if (!state.bTyping) {
+        state.current = "0.";
+        state.bTyping = true;
+      } else if (!state.current.includes(".")) {
+        state.current = clampInput(state.current + ".");
+      }
+      setDisplay(state.current);
+    };
+
+    const setOperator = (op) => {
+      if (state.current === "Erro") return;
+
+      const cur = getCurrentNumber();
+      if (state.a === null) state.a = cur;
+      else if (state.op && state.bTyping) commitIfReady();
+
+      state.op = op;
+      state.bTyping = false;
+      state.lastWasEquals = false;
+      setHistory(`${fmt(state.a)} ${symbolOp(op)}`);
+    };
+
+    const equals = () => {
+      if (state.current === "Erro") return;
+
+      if (state.op === null) {
+        state.lastWasEquals = true;
+        setHistory("");
+        setDisplay(state.current);
+        return;
+      }
+
+      if (!state.bTyping) state.current = fmt(state.a);
+
+      const aBefore = state.a;
+      const opBefore = state.op;
+      const b = getCurrentNumber();
+      const res = compute(state.a, state.op, b);
+
+      if (!Number.isFinite(res)) {
+        state.current = "Erro";
+        state.a = null;
+        state.op = null;
+        state.bTyping = false;
+        state.lastWasEquals = true;
+        setHistory("");
+        setDisplay("Erro");
+        return;
+      }
+
+      state.current = fmt(res);
+      state.a = res;
+      state.op = null;
+      state.bTyping = false;
+      state.lastWasEquals = true;
+
+      setHistory(`${fmt(aBefore)} ${symbolOp(opBefore)} ${fmt(b)}`);
+      setDisplay(state.current);
+    };
+
+    const toggleSign = () => {
+      if (state.current === "Erro" || state.current === "0") return;
+      state.current = state.current.startsWith("-") ? state.current.slice(1) : "-" + state.current;
+      setDisplay(state.current);
+    };
+
+    const percent = () => {
+      if (state.current === "Erro") return;
+
+      const cur = getCurrentNumber();
+      if (!Number.isFinite(cur)) return;
+
+      let result = cur;
+      if (state.a !== null && state.op !== null && state.bTyping) result = state.a * (cur / 100);
+      else result = cur / 100;
+
+      state.current = fmt(result);
+      state.bTyping = true;
+      setDisplay(state.current);
+    };
+
+    const backspace = () => {
+      if (state.current === "Erro") return resetAll();
+
+      if (!state.bTyping) state.bTyping = true;
+
+      if (state.current.length <= 1 || (state.current.length === 2 && state.current.startsWith("-"))) {
+        state.current = "0";
+        state.bTyping = false;
+      } else {
+        state.current = state.current.slice(0, -1);
+        if (state.current === "-" || state.current === "-0") {
+          state.current = "0";
+          state.bTyping = false;
+        }
+      }
+      setDisplay(state.current);
+    };
+
+    document.addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+
+      // ✅ SOM: toca em qualquer botão da calculadora, mas não nos botões da janela
+      if (btn.id !== "minBtn" && btn.id !== "closeBtn") {
+        // Só toca se for botão da calculadora (digit/op/action)
+        if (btn.hasAttribute("data-digit") || btn.hasAttribute("data-op") || btn.hasAttribute("data-action")) {
+          playClickSound();
+        }
+      }
+
+      const digit = btn.getAttribute("data-digit");
+      const op = btn.getAttribute("data-op");
+      const action = btn.getAttribute("data-action");
+
+      if (digit !== null) inputDigit(digit);
+      else if (op !== null) setOperator(op);
+      else if (action === "dot") inputDot();
+      else if (action === "equals") equals();
+      else if (action === "ac") resetAll();
+      else if (action === "sign") toggleSign();
+      else if (action === "percent") percent();
+    });
+
+    document.addEventListener("keydown", (e) => {
+      const k = e.key;
+
+      if (k >= "0" && k <= "9") return inputDigit(k);
+      if (k === "." || k === ",") return inputDot();
+      if (k === "+" || k === "-" || k === "*" || k === "/") return setOperator(k);
+
+      if (k === "Enter" || k === "=") {
+        e.preventDefault();
+        return equals();
+      }
+      if (k === "Backspace") return backspace();
+      if (k === "Escape") return resetAll();
+      if (k === "%") return percent();
+    });
+
+    resetAll();
+  </script>
+</body>
+</html>
