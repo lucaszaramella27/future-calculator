@@ -1,0 +1,43 @@
+{
+  "name": "calculadora-electron",
+  "version": "1.0.0",
+  "description": "Calculadora moderna e minimalista (Electron + JS puro).",
+  "main": "src/main/main.js",
+  "author": "",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.example.calculadora",
+    "productName": "Calculadora Moderna",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

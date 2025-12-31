@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calculadora Moderna</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app" aria-label="Calculadora">
+      <section class="calc" role="application" aria-label="Calculadora">
+        <header class="display" aria-label="Visor">
+          <div id="subDisplay" class="sub" aria-live="polite"></div>
+          <div id="mainDisplay" class="main" aria-live="polite">0</div>
+        </header>
+
+        <section class="keys" aria-label="Teclas">
+          <button class="key key-fn" data-action="ac" aria-label="Limpar tudo">AC</button>
+          <button class="key key-fn" data-action="del" aria-label="Apagar último">DEL</button>
+          <button class="key key-fn" data-action="sign" aria-label="Inverter sinal">+/−</button>
+          <button class="key key-op" data-action="op" data-value="÷" aria-label="Divisão">÷</button>
+
+          <button class="key" data-action="digit" data-value="7" aria-label="7">7</button>
+          <button class="key" data-action="digit" data-value="8" aria-label="8">8</button>
+          <button class="key" data-action="digit" data-value="9" aria-label="9">9</button>
+          <button class="key key-op" data-action="op" data-value="×" aria-label="Multiplicação">×</button>
+
+          <button class="key" data-action="digit" data-value="4" aria-label="4">4</button>
+          <button class="key" data-action="digit" data-value="5" aria-label="5">5</button>
+          <button class="key" data-action="digit" data-value="6" aria-label="6">6</button>
+          <button class="key key-op" data-action="op" data-value="−" aria-label="Subtração">−</button>
+
+          <button class="key" data-action="digit" data-value="1" aria-label="1">1</button>
+          <button class="key" data-action="digit" data-value="2" aria-label="2">2</button>
+          <button class="key" data-action="digit" data-value="3" aria-label="3">3</button>
+          <button class="key key-op" data-action="op" data-value="+" aria-label="Adição">+</button>
+
+          <button class="key key-fn" data-action="percent" aria-label="Porcentagem">%</button>
+          <button class="key" data-action="digit" data-value="0" aria-label="0">0</button>
+          <button class="key" data-action="dot" aria-label="Ponto decimal">.</button>
+          <button class="key key-eq" data-action="eq" aria-label="Igual">=</button>
+        </section>
+
+        <footer class="hint" aria-label="Dica de teclado">
+          Teclado: 0–9, + - * /, Enter (=), Backspace (DEL), Esc (AC), % e .
+        </footer>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
